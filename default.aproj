@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<project ver="10" name="chatGpt" libEmbed="true" icon="..." ui="win" output="chatGpt.exe" CompanyName="aardio" FileDescription="chatGpt" LegalCopyright="Copyright (C) 作者 2023" ProductName="chatGpt" InternalName="chatGpt" FileVersion="0.0.0.1" ProductVersion="0.0.0.1" publishDir="/dist/" dstrip="false" local="false" ignored="false">
+	<file name="main" path="main.aardio"/>
+	<folder name="窗体" path="forms" comment="" embed="true" local="false" ignored="false"/>
+	<folder name="网页" path="web" embed="true" comment="目录" local="true" ignored="false">
+		<file name="htmx.js" path="web\htmx.js" comment="web\htmx.js"/>
+		<file name="index.css" path="web\index.css" comment="web\index.css"/>
+		<file name="index.html" path="web\index.html" comment="web\index.html"/>
+		<folder name="api" path="web\api" comment="web\api">
+			<file name="index.aardio" path="web\api\index.aardio" comment="web\api\index.aardio"/>
+		</folder>
+		<folder name="images" path="web\images" comment="web\images">
+			<file name="loading.gif" path="web\images\loading.gif" comment="web\images\loading.gif"/>
+		</folder>
+	</folder>
+</project>
