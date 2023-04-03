@@ -15,12 +15,25 @@ wb.external = {
 	ask = function(content){
 		var ret = ai.completions({
   			"content": content,//消息内容
-  			"model": "gpt-3.5-turbo",//模型 
-		})
+		});
  		
-		if(ret){
+		if(ret and ret.code === 0){
 		    return ret.data.content;
+		}else {
+			return ret.error;
 		}
+	};
+	image = function(content){
+		var ret = ai.imagesGenerations({
+  			"prompt": content,//消息内容
+		});
+ 		
+		if(ret and ret.code === 0){
+		    return ret.data;
+		}else {
+			return ret.error;
+		}
+		
 	};	
 } 
 
@@ -40,7 +53,7 @@ wb.html = /**
 
 <script type="text/babel"> 
 	const { useState,useEffect,useCallback,useRef } =  React;  
-	const { default: Chat, Bubble, useMessages } = ChatUI;  
+	const { default: Chat, Bubble, useMessages, Image } = ChatUI;  
 	
 	const App = () => {
   		const { messages, appendMsg, setTyping } = useMessages([{
@@ -58,19 +71,43 @@ wb.html = /**
       			});
 			
       			setTyping(true);
-      			
-      			aardio.ask(val).then( text=>{
-      				appendMsg({
-          				type: 'text',
-          				content: { text: text },
-        				});	
-      			}) 
+      			// 判断是否以图片二字开头，然后以:进行分割取后半部分
+    			if (val.startsWith("图片")) {
+    			    val = val.substr(3)
+      				aardio.image(val).then( text=>{
+      					appendMsg({
+          					type: 'image',
+          					content: { picUrl: text },
+        					});	
+      				}) 
+    			}else {
+      				aardio.ask(val).then( text=>{
+      					appendMsg({
+          					type: 'text',
+          					content: { text: text },
+        					});	
+      				}) 
+    			}
+    			
     		}
   		}
 		
   		function renderMessageContent(msg) {
-    		const { content } = msg;
-    		return <Bubble content={content.text} />;
+    		const { type, content } = msg;
+		
+    		// 根据消息类型来渲染
+    		switch (type) {
+      		case 'text':
+        		return <Bubble content={content.text} />;
+      		case 'image':
+        		return (
+          		<Bubble type="image">
+            		<img src={content.picUrl} alt="" />
+          		</Bubble>
+        		);
+      		default:
+        		return null;
+    		}
   		}
 		
   		return (
@@ -81,7 +118,7 @@ wb.html = /**
       		onSend={handleSend}
     		/>
   		);
-		};
+	};
 		
 	ReactDOM.render(<App />, document.querySelector('#app')); 
 </script>
