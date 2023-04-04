@@ -7,41 +7,12 @@ winform.add()
 import web.view;
 var wb = web.view(winform);
 
-import web.rest.jsonClient;
-var http = web.rest.jsonClient(); 
-var ai = http.api("http://localhost:3000/chat-gpt/");
- 
-wb.external = {
-	ask = function(content){
-		var ret = ai.completions({
-  			"content": content,//消息内容
-		});
- 		
-		if(ret and ret.code === 0){
-		    return ret.data.content;
-		}else {
-			return ret.error;
-		}
-	};
-	image = function(content){
-		var ret = ai.imagesGenerations({
-  			"prompt": content,//消息内容
-		});
- 		
-		if(ret and ret.code === 0){
-		    return ret.data;
-		}else {
-			return ret.error;
-		}
-		
-	};	
-} 
-
 wb.html = /**
 <!DOCTYPE html><html>
 <head>
 	<meta charset="utf-8" />
 	<title>WebView2</title> 
+	<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 	<script src="https://lib.baomitu.com/react/17.0.2/umd/react.development.js"></script>
 	<script src="https://lib.baomitu.com/react-dom/17.0.2/umd/react-dom.development.js"></script>
 	<script src="https://lib.baomitu.com/chatui-core/2.4.2/index.min.js"></script> 
@@ -53,7 +24,11 @@ wb.html = /**
 
 <script type="text/babel"> 
 	const { useState,useEffect,useCallback,useRef } =  React;  
-	const { default: Chat, Bubble, useMessages, Image } = ChatUI;  
+	const { default: Chat, Bubble, useMessages, Image } = ChatUI
+	const baseUrl = 'http://localhost:4000/chat-gpt';
+	const source = new EventSource(baseUrl + '/completions');
+	
+	
 	
 	const App = () => {
   		const { messages, appendMsg, setTyping } = useMessages([{
@@ -62,6 +37,13 @@ wb.html = /**
     		user: { avatar: 'https://gitee.com/xiaowu_wang/pic/raw/master/1680245769332.jpg' },
   		}]);
 		
+		source.onmessage = function(event) {
+  			// 处理服务器推送的数据
+        	appendMsg({
+          		type: 'text',
+          		content: { text: event.data },
+        	});
+		};
   		function handleSend(type, val) {
     		if (type === 'text' && val.trim()) {
       			appendMsg({
@@ -74,19 +56,35 @@ wb.html = /**
       			// 判断是否以图片二字开头，然后以:进行分割取后半部分
     			if (val.startsWith("图片")) {
     			    val = val.substr(3)
-      				aardio.image(val).then( text=>{
-      					appendMsg({
+    			    // 定义url
+					let url = baseUrl + '/imagesGenerations'  
+					// 定义data数据
+					let data = {
+  						"prompt": val
+					}
+					// post请求
+					$.post(url, data, function (ret) {
+                    	appendMsg({
           					type: 'image',
-          					content: { picUrl: text },
-        					});	
-      				}) 
+          					content: { picUrl: ret.data },
+        				});
+					})
     			}else {
-      				aardio.ask(val).then( text=>{
-      					appendMsg({
-          					type: 'text',
-          					content: { text: text },
-        					});	
-      				}) 
+    			    // 定义url
+					let url = baseUrl + '/completions';
+					$.ajax({
+  						url: url,
+  						method: "GET",
+  						data: {
+  							"content": val
+						},
+  						success: function(response) {
+    						console.log("请求成功，返回数据为：" + response);
+  						},
+  						error: function(xhr, status, error) {
+    						console.log("请求失败，错误信息为：" + error);
+  						}
+					});
     			}
     			
     		}
