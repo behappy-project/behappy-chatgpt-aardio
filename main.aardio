@@ -109,7 +109,7 @@ wb.html = /**
 					});
     			}else {
       				// 处理storeMsg，保证上下文;
-        			sessionMsg += (sessionMsg + "\n你: " + val + "\nAI:");
+        			sessionMsg += "\n你: " + val + "\nAI:";
     				appendMsg({
         				_id: msgID,
           				type: 'text',
