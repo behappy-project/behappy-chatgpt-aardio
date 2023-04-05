@@ -12,6 +12,7 @@ wb.html = /**
 <head>
 	<meta charset="utf-8" />
 	<title>WebView2</title> 
+	
 	<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 	<script src="https://lib.baomitu.com/react/17.0.2/umd/react.development.js"></script>
 	<script src="https://lib.baomitu.com/react-dom/17.0.2/umd/react-dom.development.js"></script>
@@ -25,26 +26,57 @@ wb.html = /**
 <script type="text/babel"> 
 	const { useState,useEffect,useCallback,useRef } =  React;  
 	const { default: Chat, Bubble, useMessages, Image } = ChatUI
-	const baseUrl = 'http://localhost:4000/chat-gpt';
-	const source = new EventSource(baseUrl + '/completions');
-	
-	
-	
+	const schema = 'http://'
+	const basePath = 'localhost:4000';
+	const baseUrl = schema + basePath + '/chat-gpt';
+	let sessionMsg = "";
 	const App = () => {
-  		const { messages, appendMsg, setTyping } = useMessages([{
+		const [msgID, setMsgID] = useState("");
+  		const [result, setResult] = useState("");
+  		let msg = "";
+  		const { messages, appendMsg, setTyping, updateMsg } = useMessages([{
     		type: 'text',
     		content: { text: '主人好，我是 ChatGPT 智能助理，你的贴心小助手~' },
     		user: { avatar: 'https://gitee.com/xiaowu_wang/pic/raw/master/1680245769332.jpg' },
   		}]);
-		
-		source.onmessage = function(event) {
-  			// 处理服务器推送的数据
-        	appendMsg({
-          		type: 'text',
-          		content: { text: event.data },
-        	});
-		};
+  		
+  		useEffect(() => {
+    		// 监听result的改变，来实现打字机效果
+    		updateMsg(msgID, {
+      			type: "text",
+      			content: { text: result }
+    		});
+  		}, [result]);
+	
+		const socket = new WebSocket('ws://' + basePath);
+		// 监听连接打开事件
+		socket.addEventListener('open', (event) => {
+  			console.log('WebSocket 连接已打开');
+		});
+		// 监听收到消息事件
+		socket.addEventListener('message', (event) => {
+  			console.log('收到服务器消息:', event.data);
+  			msg += event.data;
+        	setResult(msg);
+      		// 处理storeMsg，保证上下文
+        	sessionMsg += event.data;
+		});
+		// 监听连接关闭事件
+		socket.addEventListener('close', (event) => {
+  			console.log('WebSocket 连接已关闭');
+		});
+		// 获取当前时间戳
+  		function nanoid() {
+  			return new Date().getTime().toString();
+  		}
   		function handleSend(type, val) {
+      		// 先设置一个唯一的msgID
+      		const msgID = nanoid();
+      		setMsgID(msgID);
+      		// 重置msg
+      		msg = "";
+      		// 重置对话框
+      		setResult(msg);
     		if (type === 'text' && val.trim()) {
       			appendMsg({
         			type: 'text',
@@ -57,34 +89,33 @@ wb.html = /**
     			if (val.startsWith("图片")) {
     			    val = val.substr(3)
     			    // 定义url
-					let url = baseUrl + '/imagesGenerations'  
-					// 定义data数据
-					let data = {
-  						"prompt": val
-					}
-					// post请求
-					$.post(url, data, function (ret) {
-                    	appendMsg({
-          					type: 'image',
-          					content: { picUrl: ret.data },
-        				});
-					})
-    			}else {
-    			    // 定义url
-					let url = baseUrl + '/completions';
+					let url = baseUrl + '/imagesGenerations' 
 					$.ajax({
   						url: url,
-  						method: "GET",
+  						type: 'POST',
   						data: {
-  							"content": val
+  							"prompt": val
 						},
   						success: function(response) {
     						console.log("请求成功，返回数据为：" + response);
+    						appendMsg({
+          						type: 'image',
+          						content: { picUrl: response.data },
+        					})
   						},
   						error: function(xhr, status, error) {
     						console.log("请求失败，错误信息为：" + error);
   						}
 					});
+    			}else {
+      				// 处理storeMsg，保证上下文;
+        			sessionMsg += (sessionMsg + "\n你: " + val + "\nAI:");
+    				appendMsg({
+        				_id: msgID,
+          				type: 'text',
+          				content: { text: result },
+        			})
+        			socket.send(sessionMsg);
     			}
     			
     		}
