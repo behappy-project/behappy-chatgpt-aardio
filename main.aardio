@@ -11,20 +11,20 @@ wb.html = /**
 <!DOCTYPE html><html>
 <head>
 	<meta charset="utf-8" />
-	<title>WebView2</title> 
-	
+	<title>WebView2</title>
+
 	<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 	<script src="https://lib.baomitu.com/react/17.0.2/umd/react.development.js"></script>
 	<script src="https://lib.baomitu.com/react-dom/17.0.2/umd/react-dom.development.js"></script>
-	<script src="https://lib.baomitu.com/chatui-core/2.4.2/index.min.js"></script> 
-	<link rel="stylesheet" href="https://lib.baomitu.com/chatui-core/2.4.2/index.min.css"> 
+	<script src="https://lib.baomitu.com/chatui-core/2.4.2/index.min.js"></script>
+	<link rel="stylesheet" href="https://lib.baomitu.com/chatui-core/2.4.2/index.min.css">
 	<script src="https://lib.baomitu.com/babel-standalone/7.18.13/babel.min.js"></script>
 	<style type="text/css">html,body,#app{height:100%}</style>
 </head>
-<body>  
+<body>
 
-<script type="text/babel"> 
-	const { useState,useEffect,useCallback,useRef } =  React;  
+<script type="text/babel">
+	const { useState,useEffect,useCallback,useRef } =  React;
 	const { default: Chat, Bubble, useMessages, Image } = ChatUI
 	const schema = 'http://'
 	const basePath = 'localhost:4000';
@@ -39,7 +39,7 @@ wb.html = /**
     		content: { text: '主人好，我是 ChatGPT 智能助理，你的贴心小助手~' },
     		user: { avatar: 'https://gitee.com/xiaowu_wang/pic/raw/master/1680245769332.jpg' },
   		}]);
-  		
+
   		useEffect(() => {
     		// 监听result的改变，来实现打字机效果
     		updateMsg(msgID, {
@@ -47,7 +47,7 @@ wb.html = /**
       			content: { text: result }
     		});
   		}, [result]);
-	
+
 		const socket = new WebSocket('ws://' + basePath);
 		// 监听连接打开事件
 		socket.addEventListener('open', (event) => {
@@ -56,10 +56,15 @@ wb.html = /**
 		// 监听收到消息事件
 		socket.addEventListener('message', (event) => {
   			console.log('收到服务器消息:', event.data);
-  			msg += event.data;
-        	setResult(msg);
-      		// 处理storeMsg，保证上下文
-        	sessionMsg += event.data;
+      		// 处理sessionMsg，保证上下文
+        	if(event.data === '[DONE]'){
+        		// 说明是结尾
+        		sessionMsg += '\n';
+        	}else {
+        	    msg += event.data;
+        		setResult(msg);
+        		sessionMsg += event.data;
+        	}
 		});
 		// 监听连接关闭事件
 		socket.addEventListener('close', (event) => {
@@ -83,13 +88,13 @@ wb.html = /**
         			content: { text: val },
         			position: 'right',
       			});
-			
+
       			setTyping(true);
       			// 判断是否以图片二字开头，然后以:进行分割取后半部分
     			if (val.startsWith("图片")) {
     			    val = val.substr(3)
     			    // 定义url
-					let url = baseUrl + '/imagesGenerations' 
+					let url = baseUrl + '/imagesGenerations'
 					$.ajax({
   						url: url,
   						type: 'POST',
@@ -108,8 +113,8 @@ wb.html = /**
   						}
 					});
     			}else {
-      				// 处理storeMsg，保证上下文;
-        			sessionMsg += "\n你: " + val + "\nAI:";
+      				// 处理sessionMsg，保证上下文;
+        			sessionMsg += "你: " + val + "\nAI:";
     				appendMsg({
         				_id: msgID,
           				type: 'text',
@@ -117,13 +122,13 @@ wb.html = /**
         			})
         			socket.send(sessionMsg);
     			}
-    			
+
     		}
   		}
-		
+
   		function renderMessageContent(msg) {
     		const { type, content } = msg;
-		
+
     		// 根据消息类型来渲染
     		switch (type) {
       		case 'text':
@@ -138,7 +143,7 @@ wb.html = /**
         		return null;
     		}
   		}
-		
+
   		return (
     		<Chat
       		navbar={{ title: '' }}
@@ -148,8 +153,8 @@ wb.html = /**
     		/>
   		);
 	};
-		
-	ReactDOM.render(<App />, document.querySelector('#app')); 
+
+	ReactDOM.render(<App />, document.querySelector('#app'));
 </script>
 <div id="app"></div>
 **/
