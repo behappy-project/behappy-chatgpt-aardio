@@ -1,6 +1,6 @@
 import win.ui;
 /*DSG{{*/
-var winform = win.form(text="ChatGPT 桌面助理";right=757;bottom=467)
+var winform = win.form(text="BeHappy 智能助理";right=757;bottom=467)
 winform.add()
 /*}}*/
 
@@ -16,13 +16,15 @@ wb.html = /**
 	<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 	<script src="https://lib.baomitu.com/react/17.0.2/umd/react.development.js"></script>
 	<script src="https://lib.baomitu.com/react-dom/17.0.2/umd/react-dom.development.js"></script>
-	<script src="https://lib.baomitu.com/chatui-core/2.4.2/index.min.js"></script>
 	<link rel="stylesheet" href="https://lib.baomitu.com/chatui-core/2.4.2/index.min.css">
 	<script src="https://lib.baomitu.com/babel-standalone/7.18.13/babel.min.js"></script>
+	<script src="https://g.alicdn.com/chatui/icons/0.3.0/index.js"></script>
+
+    <script src="https://g.alicdn.com/chatui/sdk-v2/0.2.4/sdk.js"></script>
+    <script src="https://g.alicdn.com/chatui/extensions/0.0.7/isv-parser.js"></script>
 	<style type="text/css">html,body,#app{height:100%}</style>
 </head>
 <body>
-
 <script type="text/babel">
 	const { useState,useEffect,useCallback,useRef } =  React;
 	const { default: Chat, Bubble, useMessages, Image } = ChatUI
@@ -36,12 +38,36 @@ wb.html = /**
   		let msg = "";
   		const { messages, appendMsg, setTyping, updateMsg } = useMessages([{
     		type: 'text',
-    		content: { text: '主人好，我是 ChatGPT 智能助理，你的贴心小助手~' },
+    		content: { text: '主人好，我是 BeHappy 智能助理，你的贴心小助手~' },
     		user: { avatar: 'https://gitee.com/xiaowu_wang/pic/raw/master/1680245769332.jpg' },
   		}]);
-
+		const toolbar = [
+ 			{
+   				type: 'image',
+   				icon: 'image',
+   				title: '相册',
+ 			},
+ 			{
+   				type: 'speech',
+   				icon: 'mic',
+   				title: '语音输入'
+ 			}
+		];
+		// 默认快捷短语，可选
+		const defaultQuickReplies = [
+ 			{
+   				icon: 'message',
+   				name: '你好',
+   				isNew: true,
+   				isHighlight: true,
+ 			},
+ 			{
+   				name: '你能做什么',
+   				isNew: true,
+ 			}
+		];
   		useEffect(() => {
-    		// 监听result的改变，来实现打字机效果
+			// 监听result的改变，来实现打字机效果
     		updateMsg(msgID, {
       			type: "text",
       			content: { text: result }
@@ -74,6 +100,30 @@ wb.html = /**
   		function nanoid() {
   			return new Date().getTime().toString();
   		}
+ 		// 快捷短语回调，可根据 item 数据做出不同的操作，这里以发送文本消息为例
+ 		function handleQuickReplyClick(item) {
+   			handleSend('text', item.name);
+ 		}
+
+ 		function toolbarClick (item, ctx) {
+ 			if(item.type === 'image'){
+ 				// todo 图片解析
+      			appendMsg({
+        			type: 'text',
+        			content: { text: '抱歉，该功能暂未实现' }
+      			});
+ 			}
+ 			// 录音
+   			if (item.type === 'speech') {
+   				// 这里改成 App 提供的 bridge 方法
+        		nativeInvoke('speech', (text) => {
+                    if (text) {
+                        // 通过 setText 更新输入框内容
+                        bot.appRef.current.setText(text);
+                    }
+        		});
+   			}
+ 		}
   		function handleSend(type, val) {
       		// 先设置一个唯一的msgID
       		const msgID = nanoid();
@@ -94,7 +144,7 @@ wb.html = /**
     			if (val.startsWith("图片")) {
     			    val = val.substr(3)
     			    // 定义url
-					let url = baseUrl + '/imagesGenerations'
+					const url = baseUrl + '/images/generations'
 					$.ajax({
   						url: url,
   						type: 'POST',
@@ -125,7 +175,13 @@ wb.html = /**
 
     		}
   		}
-
+  		// 修改inputType
+  		function inputTypeChange(inputType) {
+  			if(inputType === 'voice'){
+  				return 'text';
+  			}
+  			return 'voice';
+  		}
   		function renderMessageContent(msg) {
     		const { type, content } = msg;
 
@@ -146,10 +202,29 @@ wb.html = /**
 
   		return (
     		<Chat
-      		navbar={{ title: '' }}
+      		navbar={{ title: 'BeHappy 智能助理' }}
       		messages={messages}
       		renderMessageContent={renderMessageContent}
+         	quickReplies={defaultQuickReplies}
+         	onQuickReplyClick={handleQuickReplyClick}
       		onSend={handleSend}
+         	placeholder={'请输入...'}
+         	toolbar={toolbar}
+         	onInputTypeChange={inputTypeChange}
+         	recorder={{
+         	    canRecord: true,
+         	    onStart() {
+        			console.log('开始录音');
+      			},
+      			onEnd() {
+        			console.log('停止录音');
+        			// 识别到文本后要 ctx.postMessage
+      			},
+      			onCancel() {
+        			console.log('取消录音');
+      			}
+      		}}
+         	onToolbarClick={toolbarClick}
     		/>
   		);
 	};
